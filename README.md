@@ -1,4 +1,4 @@
-# 🌱 Growly - Minimalist Productivity Companion
+# Growly - Minimalist Productivity Companion
 
 A beautiful, minimalist Android app designed to help you grow through mindful productivity. Built with Jetpack Compose and featuring a calming pastel color palette.
 
