@@ -107,7 +107,7 @@ fun GrowlyNavigation() {
             startDestination = Screen.Home.route,
             modifier = Modifier.padding(innerPadding)
         ) {
-            composable(Screen.Home.route) { HomeScreen() }
+            composable(Screen.Home.route) { HomeScreen(navController = navController) }
             composable(Screen.Journal.route) {
                 JournalScreen(
                     onCategoryClick = { categoryItem ->

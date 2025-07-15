@@ -12,6 +12,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.growly.app.ui.components.GrowlyCard
 import com.growly.app.ui.components.GrowlyQuickAccessCard
@@ -19,7 +20,23 @@ import com.growly.app.ui.theme.GrowlyColors
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen() {
+fun HomeScreen(
+    navController: androidx.navigation.NavController? = null
+) {
+    // Sample tasks for today - in real app, this would come from ViewModel
+    val todaysTasks = remember {
+        listOf(
+            "Review project proposal" to true,
+            "Call dentist" to false,
+            "Grocery shopping" to true,
+            "Finish presentation" to false,
+            "Team meeting" to true
+        )
+    }
+
+    val completedTasks = todaysTasks.count { it.second }
+    val totalTasks = todaysTasks.size
+    val completionPercentage = if (totalTasks > 0) (completedTasks.toFloat() / totalTasks) else 0f
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -75,7 +92,14 @@ fun HomeScreen() {
                         title = item.title,
                         subtitle = item.subtitle,
                         icon = { Icon(item.icon, contentDescription = item.title, tint = item.color) },
-                        onClick = { /* TODO: Navigate to respective screen */ },
+                        onClick = {
+                            when (item.title) {
+                                "Start Journaling" -> navController?.navigate("journal")
+                                "Focus Timer" -> navController?.navigate("focus")
+                                "View Tasks" -> navController?.navigate("tasks")
+                                "Profile" -> navController?.navigate("profile")
+                            }
+                        },
                         modifier = Modifier.width(160.dp),
                         accentColor = item.color
                     )
@@ -160,31 +184,57 @@ fun HomeScreen() {
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "3 of 5 completed",
+                            text = "$completedTasks of $totalTasks completed",
                             style = MaterialTheme.typography.titleMedium,
                             color = GrowlyColors.TextPrimary
                         )
                         Text(
-                            text = "60%",
+                            text = "${(completionPercentage * 100).toInt()}%",
                             style = MaterialTheme.typography.titleMedium,
                             color = GrowlyColors.LightMint
                         )
                     }
-                    
+
                     LinearProgressIndicator(
-                        progress = 0.6f,
+                        progress = completionPercentage,
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(vertical = 8.dp),
                         color = GrowlyColors.LightMint,
                         trackColor = GrowlyColors.LightGray
                     )
-                    
-                    Text(
-                        text = "• Review project proposal\n• Call dentist\n• Grocery shopping",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = GrowlyColors.TextSecondary
-                    )
+
+                    Column(
+                        modifier = Modifier.padding(top = 8.dp)
+                    ) {
+                        todaysTasks.take(3).forEach { (task, isCompleted) ->
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.padding(vertical = 2.dp)
+                            ) {
+                                Text(
+                                    text = if (isCompleted) "✓" else "•",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = if (isCompleted) GrowlyColors.LightMint else GrowlyColors.TextSecondary,
+                                    modifier = Modifier.width(16.dp)
+                                )
+                                Text(
+                                    text = task,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = if (isCompleted) GrowlyColors.TextSecondary else GrowlyColors.TextPrimary,
+                                    textDecoration = if (isCompleted) androidx.compose.ui.text.style.TextDecoration.LineThrough else null
+                                )
+                            }
+                        }
+                        if (totalTasks > 3) {
+                            Text(
+                                text = "... and ${totalTasks - 3} more",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = GrowlyColors.TextSecondary,
+                                modifier = Modifier.padding(start = 16.dp, top = 4.dp)
+                            )
+                        }
+                    }
                 }
             }
         }

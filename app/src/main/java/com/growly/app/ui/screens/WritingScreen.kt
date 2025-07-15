@@ -1,5 +1,6 @@
 package com.growly.app.ui.screens
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.BasicTextField
@@ -31,6 +32,12 @@ fun WritingScreen(
     var wordCount by remember { mutableStateOf(0) }
     var isAutoSaved by remember { mutableStateOf(false) }
     var showSettings by remember { mutableStateOf(false) }
+
+    // Writing environment settings
+    var fontSize by remember { mutableStateOf(16) }
+    var backgroundTexture by remember { mutableStateOf("None") }
+    var ambientSoundEnabled by remember { mutableStateOf(false) }
+    var ambientSoundType by remember { mutableStateOf("Nature") }
     
     // Auto-save functionality
     LaunchedEffect(content) {
@@ -51,6 +58,14 @@ fun WritingScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .let { modifier ->
+                when (backgroundTexture) {
+                    "Paper" -> modifier.background(GrowlyColors.SoftBeige.copy(alpha = 0.3f))
+                    "Parchment" -> modifier.background(GrowlyColors.BlushPink.copy(alpha = 0.1f))
+                    "Dark" -> modifier.background(androidx.compose.ui.graphics.Color.Black.copy(alpha = 0.05f))
+                    else -> modifier
+                }
+            }
             .padding(16.dp)
     ) {
         // Top Navigation Bar
@@ -152,7 +167,8 @@ fun WritingScreen(
                 .verticalScroll(rememberScrollState()),
             textStyle = MaterialTheme.typography.bodyLarge.copy(
                 color = GrowlyColors.TextPrimary,
-                lineHeight = 28.sp
+                fontSize = fontSize.sp,
+                lineHeight = (fontSize + 8).sp
             ),
             cursorBrush = SolidColor(GrowlyColors.SkyBlue),
             decorationBox = { innerTextField ->
@@ -161,7 +177,8 @@ fun WritingScreen(
                         text = getPlaceholderText(category),
                         style = MaterialTheme.typography.bodyLarge.copy(
                             color = GrowlyColors.TextSecondary.copy(alpha = 0.6f),
-                            lineHeight = 28.sp
+                            fontSize = fontSize.sp,
+                            lineHeight = (fontSize + 8).sp
                         )
                     )
                 }
@@ -183,20 +200,47 @@ fun WritingScreen(
                 color = GrowlyColors.TextSecondary
             )
             
-            Text(
-                text = getCurrentDateTime(),
-                style = MaterialTheme.typography.bodySmall,
-                color = GrowlyColors.TextSecondary
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                if (ambientSoundEnabled) {
+                    Icon(
+                        imageVector = Icons.Default.PlayArrow,
+                        contentDescription = "Ambient Sound",
+                        tint = GrowlyColors.LightMint,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = ambientSoundType,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = GrowlyColors.LightMint
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                }
+
+                Text(
+                    text = getCurrentDateTime(),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = GrowlyColors.TextSecondary
+                )
+            }
         }
     }
     
     // Writing Settings Dialog
     if (showSettings) {
         WritingSettingsDialog(
+            currentFontSize = fontSize,
+            currentBackgroundTexture = backgroundTexture,
+            currentAmbientSoundEnabled = ambientSoundEnabled,
+            currentAmbientSoundType = ambientSoundType,
             onDismiss = { showSettings = false },
             onApplySettings = { settings ->
-                // TODO: Apply writing environment settings
+                fontSize = settings.fontSize
+                backgroundTexture = settings.backgroundTexture
+                ambientSoundEnabled = settings.ambientSoundEnabled
+                ambientSoundType = settings.ambientSoundType
                 showSettings = false
             }
         )
@@ -205,13 +249,17 @@ fun WritingScreen(
 
 @Composable
 fun WritingSettingsDialog(
+    currentFontSize: Int = 16,
+    currentBackgroundTexture: String = "None",
+    currentAmbientSoundEnabled: Boolean = false,
+    currentAmbientSoundType: String = "Nature",
     onDismiss: () -> Unit,
     onApplySettings: (WritingSettings) -> Unit
 ) {
-    var fontSize by remember { mutableStateOf(16) }
-    var backgroundTexture by remember { mutableStateOf("None") }
-    var ambientSoundEnabled by remember { mutableStateOf(false) }
-    var ambientSoundType by remember { mutableStateOf("Nature") }
+    var fontSize by remember { mutableStateOf(currentFontSize) }
+    var backgroundTexture by remember { mutableStateOf(currentBackgroundTexture) }
+    var ambientSoundEnabled by remember { mutableStateOf(currentAmbientSoundEnabled) }
+    var ambientSoundType by remember { mutableStateOf(currentAmbientSoundType) }
     var ambientSoundVolume by remember { mutableStateOf(0.5f) }
     
     AlertDialog(
