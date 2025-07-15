@@ -1,0 +1,32 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Base application theme. -->
+    <style name="Base.Theme.Growly" parent="Theme.Material3.DayNight.NoActionBar">
+        <!-- Customize your light theme here. -->
+        <item name="colorPrimary">@color/sky_blue</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <item name="colorPrimaryContainer">@color/sky_blue_container</item>
+        <item name="colorOnPrimaryContainer">@color/darker_gray</item>
+        
+        <item name="colorSecondary">@color/blush_pink</item>
+        <item name="colorOnSecondary">@color/white</item>
+        <item name="colorSecondaryContainer">@color/blush_pink_container</item>
+        <item name="colorOnSecondaryContainer">@color/darker_gray</item>
+        
+        <item name="colorTertiary">@color/light_mint</item>
+        <item name="colorOnTertiary">@color/darker_gray</item>
+        <item name="colorTertiaryContainer">@color/light_mint_container</item>
+        <item name="colorOnTertiaryContainer">@color/darker_gray</item>
+        
+        <item name="android:colorBackground">@color/soft_beige</item>
+        <item name="colorOnBackground">@color/darker_gray</item>
+        <item name="colorSurface">@color/white</item>
+        <item name="colorOnSurface">@color/darker_gray</item>
+        
+        <item name="android:statusBarColor">@color/soft_beige</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:navigationBarColor">@color/soft_beige</item>
+        <item name="android:windowLightNavigationBar">true</item>
+    </style>
+
+    <style name="Theme.Growly" parent="Base.Theme.Growly" />
+</resources>
