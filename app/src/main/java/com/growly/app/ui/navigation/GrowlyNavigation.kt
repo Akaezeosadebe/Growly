@@ -22,6 +22,7 @@ import com.growly.app.data.entities.JournalCategory
 import com.growly.app.ui.theme.GrowlyColors
 
 sealed class Screen(val route: String, val title: String, val icon: ImageVector) {
+    object Auth : Screen("auth", "Auth", Icons.Filled.Login)
     object Home : Screen("home", "Home", Icons.Filled.Home)
     object Journal : Screen("journal", "Journal", Icons.Filled.Create)
     object Tasks : Screen("tasks", "Tasks", Icons.Filled.CheckCircle)
@@ -104,9 +105,15 @@ fun GrowlyNavigation() {
     ) { innerPadding ->
         NavHost(
             navController = navController,
-            startDestination = Screen.Home.route,
+            startDestination = Screen.Auth.route,
             modifier = Modifier.padding(innerPadding)
         ) {
+            composable(Screen.Auth.route) {
+                AuthScreen(
+                    onSignInSuccess = { navController.navigate(Screen.Home.route) },
+                    onSignUpSuccess = { navController.navigate(Screen.Home.route) }
+                )
+            }
             composable(Screen.Home.route) { HomeScreen(navController = navController) }
             composable(Screen.Journal.route) {
                 JournalScreen(

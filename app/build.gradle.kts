@@ -2,6 +2,7 @@ plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("com.google.devtools.ksp")
+    id("com.google.gms.google-services")
     kotlin("kapt")
 }
 
@@ -91,7 +92,16 @@ dependencies {
     
     // Work Manager (for notifications and background tasks)
     implementation("androidx.work:work-runtime-ktx:2.9.0")
-    
+
+    // Firebase BOM
+    implementation(platform("com.google.firebase:firebase-bom:33.16.0"))
+
+    // Firebase services
+    implementation("com.google.firebase:firebase-auth-ktx")
+    implementation("com.google.firebase:firebase-firestore-ktx")
+    implementation("com.google.firebase:firebase-storage-ktx")
+    implementation("com.google.firebase:firebase-analytics-ktx")
+
     // Testing
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
