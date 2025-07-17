@@ -13,6 +13,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.growly.app.data.entities.JournalCategory
 import com.growly.app.ui.components.GrowlyCard
+import com.growly.app.ui.components.SyncIndicator
 import com.growly.app.ui.theme.GrowlyColors
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -39,6 +40,39 @@ fun JournalScreen(
                 style = MaterialTheme.typography.bodyLarge,
                 color = GrowlyColors.TextSecondary
             )
+        }
+
+        // Demo Sync Indicator
+        item {
+            var demoSyncState by remember { mutableStateOf(0) } // 0=synced, 1=syncing, 2=offline
+
+            SyncIndicator(
+                isSyncing = demoSyncState == 1,
+                isOffline = demoSyncState == 2,
+                syncMessage = when (demoSyncState) {
+                    0 -> "All journal entries synced"
+                    else -> null
+                },
+                onRetrySync = { demoSyncState = 1 }
+            )
+
+            // Demo controls
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                TextButton(onClick = { demoSyncState = 0 }) {
+                    Text("Synced", style = MaterialTheme.typography.bodySmall)
+                }
+                TextButton(onClick = { demoSyncState = 1 }) {
+                    Text("Syncing", style = MaterialTheme.typography.bodySmall)
+                }
+                TextButton(onClick = { demoSyncState = 2 }) {
+                    Text("Offline", style = MaterialTheme.typography.bodySmall)
+                }
+            }
         }
 
         items(getJournalCategories()) { category ->

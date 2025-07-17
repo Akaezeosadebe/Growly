@@ -6,11 +6,15 @@ import androidx.lifecycle.viewModelScope
 import com.growly.app.data.dao.TaskDao
 import com.growly.app.data.entities.Task
 import com.growly.app.data.entities.TaskPriority
+import com.growly.app.data.repository.FirebaseRepository
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.util.Date
 
-class TaskViewModel(private val taskDao: TaskDao) : ViewModel() {
+class TaskViewModel(
+    private val taskDao: TaskDao,
+    private val firebaseRepository: FirebaseRepository = FirebaseRepository()
+) : ViewModel() {
     
     private val _uiState = MutableStateFlow(TaskUiState())
     val uiState: StateFlow<TaskUiState> = _uiState.asStateFlow()
@@ -64,6 +68,10 @@ class TaskViewModel(private val taskDao: TaskDao) : ViewModel() {
                 )
                 
                 taskDao.insertTask(task)
+
+                // Sync to Firebase
+                syncTaskToFirebase(task)
+
                 _uiState.value = _uiState.value.copy(
                     message = "Task added successfully"
                 )
@@ -202,6 +210,64 @@ class TaskViewModel(private val taskDao: TaskDao) : ViewModel() {
     fun clearError() {
         _uiState.value = _uiState.value.copy(error = null)
     }
+
+    // Firebase sync methods
+    fun syncWithFirebase() {
+        viewModelScope.launch {
+            if (firebaseRepository.getCurrentUser() == null) {
+                _uiState.value = _uiState.value.copy(
+                    isOffline = true,
+                    syncMessage = "Sign in to sync tasks with cloud"
+                )
+                return@launch
+            }
+
+            _uiState.value = _uiState.value.copy(isSyncing = true, syncMessage = null)
+
+            firebaseRepository.getTasks()
+                .onSuccess { firebaseTasks ->
+                    // Merge with local tasks
+                    mergeFirebaseTasks(firebaseTasks)
+                    _uiState.value = _uiState.value.copy(
+                        isSyncing = false,
+                        isOffline = false,
+                        syncMessage = "Synced ${firebaseTasks.size} tasks from cloud"
+                    )
+                }
+                .onFailure { exception ->
+                    _uiState.value = _uiState.value.copy(
+                        isSyncing = false,
+                        isOffline = true,
+                        error = "Sync failed: ${exception.message}"
+                    )
+                }
+        }
+    }
+
+    private suspend fun mergeFirebaseTasks(firebaseTasks: List<Task>) {
+        try {
+            firebaseTasks.forEach { task ->
+                taskDao.insertTask(task)
+            }
+        } catch (e: Exception) {
+            _uiState.value = _uiState.value.copy(
+                error = "Failed to merge tasks: ${e.message}"
+            )
+        }
+    }
+
+    private fun syncTaskToFirebase(task: Task) {
+        viewModelScope.launch {
+            if (firebaseRepository.getCurrentUser() == null) return@launch
+
+            firebaseRepository.saveTask(task)
+                .onFailure { exception ->
+                    _uiState.value = _uiState.value.copy(
+                        error = "Failed to sync task: ${exception.message}"
+                    )
+                }
+        }
+    }
 }
 
 data class TaskUiState(
@@ -210,7 +276,10 @@ data class TaskUiState(
     val error: String? = null,
     val stats: TaskStats? = null,
     val categories: List<String> = emptyList(),
-    val selectedFilter: TaskFilter = TaskFilter.ALL
+    val selectedFilter: TaskFilter = TaskFilter.ALL,
+    val isSyncing: Boolean = false,
+    val isOffline: Boolean = false,
+    val syncMessage: String? = null
 )
 
 data class TaskStats(

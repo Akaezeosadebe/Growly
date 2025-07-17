@@ -6,11 +6,15 @@ import androidx.lifecycle.viewModelScope
 import com.growly.app.data.dao.JournalDao
 import com.growly.app.data.entities.JournalCategory
 import com.growly.app.data.entities.JournalEntry
+import com.growly.app.data.repository.FirebaseRepository
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.util.Date
 
-class JournalViewModel(private val journalDao: JournalDao) : ViewModel() {
+class JournalViewModel(
+    private val journalDao: JournalDao,
+    private val firebaseRepository: FirebaseRepository = FirebaseRepository()
+) : ViewModel() {
     
     private val _uiState = MutableStateFlow(JournalUiState())
     val uiState: StateFlow<JournalUiState> = _uiState.asStateFlow()
@@ -53,6 +57,10 @@ class JournalViewModel(private val journalDao: JournalDao) : ViewModel() {
                 )
                 
                 journalDao.insertEntry(entry)
+
+                // Sync to Firebase
+                syncEntryToFirebase(entry)
+
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     message = "Entry saved successfully"
@@ -147,13 +155,74 @@ class JournalViewModel(private val journalDao: JournalDao) : ViewModel() {
     fun clearError() {
         _uiState.value = _uiState.value.copy(error = null)
     }
+
+    // Firebase sync methods
+    fun syncWithFirebase() {
+        viewModelScope.launch {
+            if (firebaseRepository.getCurrentUser() == null) {
+                _uiState.value = _uiState.value.copy(
+                    isOffline = true,
+                    syncMessage = "Sign in to sync with cloud"
+                )
+                return@launch
+            }
+
+            _uiState.value = _uiState.value.copy(isSyncing = true, syncMessage = null)
+
+            firebaseRepository.getJournalEntries()
+                .onSuccess { firebaseEntries ->
+                    // Merge with local entries
+                    mergeFirebaseEntries(firebaseEntries)
+                    _uiState.value = _uiState.value.copy(
+                        isSyncing = false,
+                        isOffline = false,
+                        syncMessage = "Synced ${firebaseEntries.size} entries from cloud"
+                    )
+                }
+                .onFailure { exception ->
+                    _uiState.value = _uiState.value.copy(
+                        isSyncing = false,
+                        isOffline = true,
+                        error = "Sync failed: ${exception.message}"
+                    )
+                }
+        }
+    }
+
+    private suspend fun mergeFirebaseEntries(firebaseEntries: List<JournalEntry>) {
+        try {
+            firebaseEntries.forEach { entry ->
+                journalDao.insertEntry(entry)
+            }
+        } catch (e: Exception) {
+            _uiState.value = _uiState.value.copy(
+                error = "Failed to merge entries: ${e.message}"
+            )
+        }
+    }
+
+    private fun syncEntryToFirebase(entry: JournalEntry) {
+        viewModelScope.launch {
+            if (firebaseRepository.getCurrentUser() == null) return@launch
+
+            firebaseRepository.saveJournalEntry(entry)
+                .onFailure { exception ->
+                    _uiState.value = _uiState.value.copy(
+                        error = "Failed to sync entry: ${exception.message}"
+                    )
+                }
+        }
+    }
 }
 
 data class JournalUiState(
     val isLoading: Boolean = false,
     val message: String? = null,
     val error: String? = null,
-    val stats: JournalStats? = null
+    val stats: JournalStats? = null,
+    val isSyncing: Boolean = false,
+    val isOffline: Boolean = false,
+    val syncMessage: String? = null
 )
 
 data class JournalStats(

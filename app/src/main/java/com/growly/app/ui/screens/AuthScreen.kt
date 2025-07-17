@@ -17,24 +17,40 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.growly.app.ui.components.GrowlyCard
 import com.growly.app.ui.components.GrowlyPrimaryButton
 import com.growly.app.ui.components.GrowlySecondaryButton
 import com.growly.app.ui.theme.GrowlyColors
+import com.growly.app.ui.viewmodels.AuthViewModel
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AuthScreen(
     onSignInSuccess: () -> Unit,
-    onSignUpSuccess: () -> Unit
+    onSignUpSuccess: () -> Unit,
+    authViewModel: AuthViewModel = viewModel()
 ) {
     var isSignUp by remember { mutableStateOf(false) }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
-    var isLoading by remember { mutableStateOf(false) }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
+
+    val uiState by authViewModel.uiState.collectAsState()
+    val coroutineScope = rememberCoroutineScope()
+
+    // Handle authentication success
+    LaunchedEffect(uiState.isSignedIn) {
+        if (uiState.isSignedIn) {
+            if (isSignUp) {
+                onSignUpSuccess()
+            } else {
+                onSignInSuccess()
+            }
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -157,12 +173,22 @@ fun AuthScreen(
                     )
                 }
                 
-                // Error Message
-                errorMessage?.let { error ->
+                // Error/Success Messages
+                uiState.errorMessage?.let { error ->
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(
                         text = error,
                         color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                        textAlign = TextAlign.Center
+                    )
+                }
+
+                uiState.successMessage?.let { success ->
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = success,
+                        color = GrowlyColors.LightMint,
                         style = MaterialTheme.typography.bodySmall,
                         textAlign = TextAlign.Center
                     )
@@ -172,21 +198,21 @@ fun AuthScreen(
                 
                 // Primary Action Button
                 GrowlyPrimaryButton(
-                    text = if (isSignUp) "Create Account" else "Sign In",
+                    text = if (uiState.isLoading) {
+                        if (isSignUp) "Creating Account..." else "Signing In..."
+                    } else {
+                        if (isSignUp) "Create Account" else "Sign In"
+                    },
                     onClick = {
-                        // TODO: Implement authentication logic
+                        authViewModel.clearMessages()
                         if (isSignUp) {
-                            if (password == confirmPassword) {
-                                onSignUpSuccess()
-                            } else {
-                                errorMessage = "Passwords don't match"
-                            }
+                            authViewModel.signUp(email, password, confirmPassword)
                         } else {
-                            onSignInSuccess()
+                            authViewModel.signIn(email, password)
                         }
                     },
                     modifier = Modifier.fillMaxWidth(),
-                    enabled = !isLoading && email.isNotBlank() && password.isNotBlank()
+                    enabled = !uiState.isLoading && email.isNotBlank() && password.isNotBlank()
                 )
                 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -194,27 +220,67 @@ fun AuthScreen(
                 // Switch Mode Button
                 GrowlySecondaryButton(
                     text = if (isSignUp) "Already have an account? Sign In" else "Don't have an account? Sign Up",
-                    onClick = { 
+                    onClick = {
                         isSignUp = !isSignUp
-                        errorMessage = null
+                        authViewModel.clearMessages()
                         confirmPassword = ""
                     },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !uiState.isLoading
                 )
             }
         }
         
         Spacer(modifier = Modifier.height(32.dp))
         
-        // Skip for now option
-        TextButton(
-            onClick = onSignInSuccess // For demo purposes, skip auth
+        // Test credentials and skip option
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = "Continue without account (Demo)",
+                text = "Test Credentials:",
+                style = MaterialTheme.typography.bodySmall,
                 color = GrowlyColors.TextSecondary,
-                style = MaterialTheme.typography.bodySmall
+                fontWeight = FontWeight.SemiBold
             )
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Text(
+                text = "Email: test@growly.app\nPassword: test123",
+                style = MaterialTheme.typography.bodySmall,
+                color = GrowlyColors.TextSecondary,
+                textAlign = TextAlign.Center
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                TextButton(
+                    onClick = {
+                        email = "test@growly.app"
+                        password = "test123"
+                    }
+                ) {
+                    Text(
+                        text = "Fill Test Data",
+                        color = GrowlyColors.SkyBlue,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+
+                TextButton(
+                    onClick = onSignInSuccess // For demo purposes, skip auth
+                ) {
+                    Text(
+                        text = "Skip Auth (Demo)",
+                        color = GrowlyColors.TextSecondary,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+            }
         }
     }
 }
